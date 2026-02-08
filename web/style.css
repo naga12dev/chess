@@ -126,9 +126,9 @@ h1 {
 }
 
 .move-item.black {
-    background: #3a3a3a;
-    color: #e0e0e0;
-    border-color: #555555;
+    background: #4a5a7a;
+    color: #121212;
+    border-color: #6a7aaa;
 }
 
 .move-item.black:hover {
