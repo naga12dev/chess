@@ -43,3 +43,8 @@ GameEngine    — I/O-free game logic for WASM/web build
 - `src/` — implementations + main.cpp + GameEngine.cpp + wasm_bindings.cpp
 - `tests/test_chess.cpp` — test suite using assert-based checks
 - `web/` — browser frontend: index.html, chess.js, style.css
+
+## Next Steps
+
+1. Display the moves made by the users by the side in the UI
+2. Integrate a chess position analyzer (like Stockfish) to display position strength on the UI as a vertical bar. Bar fills equally when both players have equal winning chances. Updates on each move showing black's win percentage in black color and white's win percentage in white color
