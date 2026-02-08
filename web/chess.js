@@ -171,6 +171,13 @@ function renderBoard() {
     // Render board from rank 8 (top) to rank 1 (bottom)
     for (let displayRow = 0; displayRow < 8; displayRow++) {
         const row = 7 - displayRow;
+
+        // Rank label (1-8) on the left
+        const rankLabel = document.createElement('div');
+        rankLabel.className = 'board-label';
+        rankLabel.textContent = row + 1;
+        boardEl.appendChild(rankLabel);
+
         for (let col = 0; col < 8; col++) {
             const square = document.createElement('div');
             const isLight = (displayRow + col) % 2 === 0;
@@ -223,6 +230,18 @@ function renderBoard() {
 
             boardEl.appendChild(square);
         }
+    }
+
+    // Empty corner cell
+    const corner = document.createElement('div');
+    boardEl.appendChild(corner);
+
+    // File labels (a-h) at the bottom
+    for (let col = 0; col < 8; col++) {
+        const fileLabel = document.createElement('div');
+        fileLabel.className = 'board-label';
+        fileLabel.textContent = String.fromCharCode(97 + col);
+        boardEl.appendChild(fileLabel);
     }
 
     updateStatus();
