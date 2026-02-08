@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chess</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="app">
+        <h1>Chess</h1>
+        <div id="status">Loading...</div>
+        <div id="board"></div>
+        <div id="controls">
+            <button id="new-game">New Game</button>
+            <button id="resign">Resign</button>
+        </div>
+        <div id="promotion-modal" class="modal hidden">
+            <div class="modal-content">
+                <p>Promote pawn to:</p>
+                <div class="promo-options">
+                    <button data-piece="queen">&#9813; Queen</button>
+                    <button data-piece="rook">&#9814; Rook</button>
+                    <button data-piece="bishop">&#9815; Bishop</button>
+                    <button data-piece="knight">&#9816; Knight</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script src="chess_engine.js"></script>
+    <script src="chess.js"></script>
+</body>
+</html>
