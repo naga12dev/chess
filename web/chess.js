@@ -11,6 +11,82 @@ let lastMove = null;
 let pendingPromotion = null;
 let moveHistory = [];
 
+// Stockfish evaluation
+let stockfish = null;
+let evalPending = false;
+
+function initStockfish() {
+    stockfish = new Worker('stockfish/stockfish.js');
+    stockfish.onmessage = function(e) {
+        const line = e.data;
+        console.debug('[stockfish]', line);
+        if (typeof line !== 'string') return;
+        if (line.startsWith('info depth') && line.includes(' score ')) {
+            const depthMatch = line.match(/depth (\d+)/);
+            const depth = depthMatch ? parseInt(depthMatch[1]) : 0;
+            if (depth >= 12) {
+                const cpMatch = line.match(/score cp (-?\d+)/);
+                const mateMatch = line.match(/score mate (-?\d+)/);
+                if (cpMatch) {
+                    updateEvalBar(parseInt(cpMatch[1]), null);
+                } else if (mateMatch) {
+                    updateEvalBar(null, parseInt(mateMatch[1]));
+                }
+            }
+        }
+    };
+    stockfish.postMessage('uci');
+}
+
+function evaluatePosition() {
+    if (!stockfish || !engine || engine.isGameOver()) return;
+    const fen = engine.getFEN();
+    stockfish.postMessage('stop');
+    stockfish.postMessage('position fen ' + fen);
+    stockfish.postMessage('go depth 16');
+}
+
+function updateEvalBar(cp, mate) {
+    const blackBar = document.getElementById('eval-black');
+    const labelEl = document.getElementById('eval-label');
+    if (!blackBar || !labelEl) return;
+
+    let blackPct;
+    let labelText;
+
+    // Scores are from the perspective of the side to move
+    // We need to convert to white's perspective for the bar
+    const turn = engine.getCurrentTurn();
+    const flip = (turn === 'black') ? -1 : 1;
+
+    if (mate !== null) {
+        const mateFromWhite = mate * flip;
+        if (mateFromWhite > 0) {
+            blackPct = 2;
+            labelText = 'M' + Math.abs(mate);
+        } else {
+            blackPct = 98;
+            labelText = 'M' + Math.abs(mate);
+        }
+    } else {
+        const cpFromWhite = cp * flip;
+        // Sigmoid: maps centipawns to 0-100 range
+        const whitePct = 50 + 50 * (2 / (1 + Math.exp(-cpFromWhite / 250)) - 1);
+        blackPct = Math.min(98, Math.max(2, 100 - whitePct));
+        labelText = (cpFromWhite >= 0 ? '+' : '') + (cpFromWhite / 100).toFixed(1);
+    }
+
+    blackBar.style.height = blackPct + '%';
+    labelEl.textContent = labelText;
+}
+
+function resetEvalBar() {
+    const blackBar = document.getElementById('eval-black');
+    const labelEl = document.getElementById('eval-label');
+    if (blackBar) blackBar.style.height = '50%';
+    if (labelEl) labelEl.textContent = '0.0';
+}
+
 function squareToAlgebraic(row, col) {
     return String.fromCharCode(97 + col) + (row + 1);
 }
@@ -173,6 +249,7 @@ function attemptMove(from, to, promotion) {
     selectedSquare = null;
     legalMoves = [];
     renderBoard();
+    if (success) evaluatePosition();
 }
 
 function showPromotionModal() {
@@ -238,7 +315,9 @@ ChessModule().then(function(Module) {
         legalMoves = [];
         lastMove = null;
         moveHistory = [];
+        resetEvalBar();
         renderBoard();
+        evaluatePosition();
     });
 
     document.getElementById('resign').addEventListener('click', function() {
@@ -259,5 +338,7 @@ ChessModule().then(function(Module) {
         });
     });
 
+    initStockfish();
     renderBoard();
+    evaluatePosition();
 });

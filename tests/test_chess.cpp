@@ -160,6 +160,50 @@ void testPositionAlgebraic() {
     check(h8.row == 7 && h8.col == 7, "Parse h8 correctly");
 }
 
+void testFEN() {
+    std::cout << "--- FEN Generation ---\n";
+    GameEngine engine;
+
+    // Starting position
+    std::string fen = engine.getFEN();
+    check(fen == "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+          "Starting position FEN");
+
+    // After 1.e4 — en passant square e3
+    engine.makeMove("e2", "e4", "");
+    fen = engine.getFEN();
+    check(fen == "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+          "FEN after 1.e4");
+
+    // After 1...e5 — en passant square e6, fullmove 2
+    engine.makeMove("e7", "e5", "");
+    fen = engine.getFEN();
+    check(fen == "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq e6 0 2",
+          "FEN after 1.e4 e5");
+
+    // After 2.Nf3 — no en passant
+    engine.makeMove("g1", "f3", "");
+    fen = engine.getFEN();
+    check(fen.find(" - 0 2") != std::string::npos,
+          "No en passant after knight move");
+
+    // Castling rights disappear after king moves
+    GameEngine engine2;
+    engine2.makeMove("e2", "e4", "");
+    engine2.makeMove("e7", "e5", "");
+    engine2.makeMove("e1", "e2", ""); // King moves
+    fen = engine2.getFEN();
+    // White should have no castling rights, black still has kq
+    check(fen.find(" kq ") != std::string::npos,
+          "White loses castling rights after king moves");
+
+    // Active color alternates
+    GameEngine engine3;
+    check(engine3.getFEN().find(" w ") != std::string::npos, "White to move at start");
+    engine3.makeMove("e2", "e4", "");
+    check(engine3.getFEN().find(" b ") != std::string::npos, "Black to move after 1.e4");
+}
+
 int main() {
     std::cout << "=== Chess Game Tests ===\n\n";
 
@@ -172,6 +216,7 @@ int main() {
     testCheckDetection();
     testLegalMoves();
     testMoveHistory();
+    testFEN();
 
     std::cout << "\n=== Results: " << testsPassed << " passed, "
               << testsFailed << " failed ===\n";

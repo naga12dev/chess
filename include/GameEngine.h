@@ -26,6 +26,7 @@ public:
     std::string getMoveHistoryJSON() const;
     std::string getStatus() const;
     std::string getCurrentTurn() const;
+    std::string getFEN() const;
     bool isGameOver() const;
     void resign();
 };

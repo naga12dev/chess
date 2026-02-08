@@ -148,6 +148,79 @@ std::string GameEngine::getCurrentTurn() const {
     return currentTurn_ == Color::WHITE ? "white" : "black";
 }
 
+std::string GameEngine::getFEN() const {
+    std::string fen;
+
+    // 1. Piece placement (rank 8 to rank 1)
+    for (int row = 7; row >= 0; row--) {
+        int emptyCount = 0;
+        for (int col = 0; col < 8; col++) {
+            const Piece* piece = board_.getPiece({row, col});
+            if (piece) {
+                if (emptyCount > 0) {
+                    fen += std::to_string(emptyCount);
+                    emptyCount = 0;
+                }
+                fen += piece->getSymbol();
+            } else {
+                emptyCount++;
+            }
+        }
+        if (emptyCount > 0) fen += std::to_string(emptyCount);
+        if (row > 0) fen += '/';
+    }
+
+    // 2. Active color
+    fen += (currentTurn_ == Color::WHITE) ? " w " : " b ";
+
+    // 3. Castling availability
+    std::string castling;
+    const Piece* wKing = board_.getPiece({0, 4});
+    if (wKing && wKing->getType() == PieceType::KING && !wKing->getHasMoved()) {
+        const Piece* wRookH = board_.getPiece({0, 7});
+        if (wRookH && wRookH->getType() == PieceType::ROOK && !wRookH->getHasMoved())
+            castling += 'K';
+        const Piece* wRookA = board_.getPiece({0, 0});
+        if (wRookA && wRookA->getType() == PieceType::ROOK && !wRookA->getHasMoved())
+            castling += 'Q';
+    }
+    const Piece* bKing = board_.getPiece({7, 4});
+    if (bKing && bKing->getType() == PieceType::KING && !bKing->getHasMoved()) {
+        const Piece* bRookH = board_.getPiece({7, 7});
+        if (bRookH && bRookH->getType() == PieceType::ROOK && !bRookH->getHasMoved())
+            castling += 'k';
+        const Piece* bRookA = board_.getPiece({7, 0});
+        if (bRookA && bRookA->getType() == PieceType::ROOK && !bRookA->getHasMoved())
+            castling += 'q';
+    }
+    fen += castling.empty() ? "-" : castling;
+
+    // 4. En passant target square
+    const auto& history = board_.getMoveHistory();
+    std::string enPassant = "-";
+    if (!history.empty()) {
+        const auto& lastMove = history.back();
+        const Piece* lastPiece = board_.getPiece(lastMove.move.to);
+        if (lastPiece && lastPiece->getType() == PieceType::PAWN) {
+            int rowDiff = lastMove.move.to.row - lastMove.move.from.row;
+            if (rowDiff == 2 || rowDiff == -2) {
+                int epRow = (lastMove.move.from.row + lastMove.move.to.row) / 2;
+                Position epPos{epRow, lastMove.move.to.col};
+                enPassant = epPos.toAlgebraic();
+            }
+        }
+    }
+    fen += " " + enPassant;
+
+    // 5. Halfmove clock (always 0 — doesn't affect eval)
+    fen += " 0";
+
+    // 6. Fullmove number
+    fen += " " + std::to_string(1 + static_cast<int>(history.size()) / 2);
+
+    return fen;
+}
+
 bool GameEngine::isGameOver() const {
     return status_ == GameStatus::CHECKMATE ||
            status_ == GameStatus::STALEMATE ||

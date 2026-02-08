@@ -14,5 +14,6 @@ EMSCRIPTEN_BINDINGS(chess) {
         .function("getStatus", &GameEngine::getStatus)
         .function("getCurrentTurn", &GameEngine::getCurrentTurn)
         .function("isGameOver", &GameEngine::isGameOver)
-        .function("resign", &GameEngine::resign);
+        .function("resign", &GameEngine::resign)
+        .function("getFEN", &GameEngine::getFEN);
 }
