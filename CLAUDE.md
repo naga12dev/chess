@@ -48,3 +48,4 @@ GameEngine    — I/O-free game logic for WASM/web build
 
 1. Display the moves made by the users by the side in the UI
 2. Integrate a chess position analyzer (like Stockfish) to display position strength on the UI as a vertical bar. Bar fills equally when both players have equal winning chances. Updates on each move showing black's win percentage in black color and white's win percentage in white color
+3. Add support for a single player game. The second player should be played by the computer. Add different difficulty levels for the computer. Add a single player and two player selection in the UI.

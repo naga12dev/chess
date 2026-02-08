@@ -15,12 +15,21 @@ let moveHistory = [];
 let stockfish = null;
 let evalPending = false;
 
+// Computer play
+let gameMode = '2player';      // '2player' or 'computer'
+let playerColor = 'white';     // which color the human plays
+let difficulty = 12;           // Stockfish depth: Easy=5, Medium=12, Hard=18
+let computerThinking = false;  // true while waiting for Stockfish bestmove
+let stockfishMode = 'eval';   // 'eval' or 'bestmove'
+
 function initStockfish() {
     stockfish = new Worker('stockfish/stockfish.js');
     stockfish.onmessage = function(e) {
         const line = e.data;
         console.debug('[stockfish]', line);
         if (typeof line !== 'string') return;
+
+        // Process eval info lines in both modes
         if (line.startsWith('info depth') && line.includes(' score ')) {
             const depthMatch = line.match(/depth (\d+)/);
             const depth = depthMatch ? parseInt(depthMatch[1]) : 0;
@@ -34,16 +43,55 @@ function initStockfish() {
                 }
             }
         }
+
+        // Handle bestmove response for computer play
+        if (stockfishMode === 'bestmove' && line.startsWith('bestmove')) {
+            const parts = line.split(' ');
+            const moveStr = parts[1];
+            if (moveStr && moveStr !== '(none)') {
+                const from = moveStr.substring(0, 2);
+                const to = moveStr.substring(2, 4);
+                let promotion = '';
+                if (moveStr.length === 5) {
+                    const promoChar = moveStr[4];
+                    const promoMap = { 'q': 'queen', 'r': 'rook', 'b': 'bishop', 'n': 'knight' };
+                    promotion = promoMap[promoChar] || '';
+                }
+                computerThinking = false;
+                stockfishMode = 'eval';
+                attemptMove(from, to, promotion);
+            } else {
+                computerThinking = false;
+                stockfishMode = 'eval';
+            }
+        }
     };
     stockfish.postMessage('uci');
 }
 
 function evaluatePosition() {
     if (!stockfish || !engine || engine.isGameOver()) return;
+    stockfishMode = 'eval';
     const fen = engine.getFEN();
     stockfish.postMessage('stop');
     stockfish.postMessage('position fen ' + fen);
     stockfish.postMessage('go depth 16');
+}
+
+function requestComputerMove() {
+    if (!stockfish || !engine || engine.isGameOver()) return;
+    computerThinking = true;
+    stockfishMode = 'bestmove';
+    const fen = engine.getFEN();
+    stockfish.postMessage('stop');
+    stockfish.postMessage('position fen ' + fen);
+    stockfish.postMessage('go depth ' + difficulty);
+}
+
+function isComputerTurn() {
+    if (gameMode !== 'computer') return false;
+    const turn = engine.getCurrentTurn();
+    return turn !== playerColor;
 }
 
 function updateEvalBar(cp, mate) {
@@ -183,6 +231,7 @@ function renderBoard() {
 
 function onSquareClick(row, col) {
     if (engine.isGameOver()) return;
+    if (computerThinking || isComputerTurn()) return;
 
     const boardState = engine.getBoardState();
     const turn = engine.getCurrentTurn();
@@ -249,7 +298,14 @@ function attemptMove(from, to, promotion) {
     selectedSquare = null;
     legalMoves = [];
     renderBoard();
-    if (success) evaluatePosition();
+    if (success) {
+        if (gameMode === 'computer' && !engine.isGameOver() && isComputerTurn()) {
+            // In computer mode, request the computer's move (eval happens via bestmove handler)
+            requestComputerMove();
+        } else {
+            evaluatePosition();
+        }
+    }
 }
 
 function showPromotionModal() {
@@ -283,6 +339,8 @@ function updateStatus() {
     } else if (status === 'check') {
         statusEl.innerHTML = indicator + turn.charAt(0).toUpperCase() + turn.slice(1) + ' to move — Check!';
         statusEl.classList.add('check');
+    } else if (computerThinking) {
+        statusEl.innerHTML = indicator + 'Computer is thinking...';
     } else {
         statusEl.innerHTML = indicator + turn.charAt(0).toUpperCase() + turn.slice(1) + ' to move';
     }
@@ -311,16 +369,25 @@ function renderMoveHistory() {
 ChessModule().then(function(Module) {
     engine = new Module.GameEngine();
 
-    document.getElementById('new-game').addEventListener('click', function() {
+    function startNewGame() {
         engine.reset();
         selectedSquare = null;
         legalMoves = [];
         lastMove = null;
         moveHistory = [];
+        computerThinking = false;
+        stockfishMode = 'eval';
         resetEvalBar();
         renderBoard();
-        evaluatePosition();
-    });
+        if (gameMode === 'computer' && playerColor === 'black') {
+            // Computer plays first as White
+            requestComputerMove();
+        } else {
+            evaluatePosition();
+        }
+    }
+
+    document.getElementById('new-game').addEventListener('click', startNewGame);
 
     document.getElementById('resign').addEventListener('click', function() {
         if (!engine.isGameOver()) {
@@ -340,6 +407,41 @@ ChessModule().then(function(Module) {
         });
     });
 
+    // Mode controls
+    const modeToggle = document.getElementById('mode-toggle');
+    const playAsSelect = document.getElementById('play-as');
+    const difficultySelect = document.getElementById('difficulty');
+    const computerOptions = document.getElementById('computer-options');
+
+    function updateModeUI() {
+        if (gameMode === 'computer') {
+            modeToggle.textContent = 'vs Computer';
+            modeToggle.classList.add('active');
+            computerOptions.classList.remove('hidden');
+        } else {
+            modeToggle.textContent = '2 Player';
+            modeToggle.classList.remove('active');
+            computerOptions.classList.add('hidden');
+        }
+    }
+
+    modeToggle.addEventListener('click', function() {
+        gameMode = gameMode === '2player' ? 'computer' : '2player';
+        updateModeUI();
+        startNewGame();
+    });
+
+    playAsSelect.addEventListener('change', function() {
+        playerColor = this.value;
+        startNewGame();
+    });
+
+    difficultySelect.addEventListener('change', function() {
+        difficulty = parseInt(this.value);
+        startNewGame();
+    });
+
+    updateModeUI();
     initStockfish();
     renderBoard();
     evaluatePosition();

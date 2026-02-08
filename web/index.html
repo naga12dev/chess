@@ -27,6 +27,20 @@
             <button id="new-game">New Game</button>
             <button id="resign">Resign</button>
         </div>
+        <div id="mode-controls">
+            <button id="mode-toggle">2 Player</button>
+            <div id="computer-options" class="hidden">
+                <select id="play-as">
+                    <option value="white">Play as White</option>
+                    <option value="black">Play as Black</option>
+                </select>
+                <select id="difficulty">
+                    <option value="5">Easy</option>
+                    <option value="12" selected>Medium</option>
+                    <option value="18">Hard</option>
+                </select>
+            </div>
+        </div>
         <div id="promotion-modal" class="modal hidden">
             <div class="modal-content">
                 <p>Promote pawn to:</p>
