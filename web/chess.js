@@ -267,22 +267,24 @@ function updateStatus() {
 
     statusEl.className = '';
 
+    const indicator = '<span class="turn-indicator ' + turn + '"></span> ';
+
     if (status === 'checkmate') {
         const winner = turn === 'white' ? 'Black' : 'White';
-        statusEl.textContent = 'Checkmate! ' + winner + ' wins!';
+        statusEl.innerHTML = 'Checkmate! ' + winner + ' wins!';
         statusEl.classList.add('gameover');
     } else if (status === 'stalemate') {
-        statusEl.textContent = 'Stalemate! Draw.';
+        statusEl.innerHTML = 'Stalemate! Draw.';
         statusEl.classList.add('gameover');
     } else if (status === 'resignation') {
         const winner = turn === 'white' ? 'Black' : 'White';
-        statusEl.textContent = turn.charAt(0).toUpperCase() + turn.slice(1) + ' resigns. ' + winner + ' wins!';
+        statusEl.innerHTML = turn.charAt(0).toUpperCase() + turn.slice(1) + ' resigns. ' + winner + ' wins!';
         statusEl.classList.add('gameover');
     } else if (status === 'check') {
-        statusEl.textContent = turn.charAt(0).toUpperCase() + turn.slice(1) + ' to move — Check!';
+        statusEl.innerHTML = indicator + turn.charAt(0).toUpperCase() + turn.slice(1) + ' to move — Check!';
         statusEl.classList.add('check');
     } else {
-        statusEl.textContent = turn.charAt(0).toUpperCase() + turn.slice(1) + ' to move';
+        statusEl.innerHTML = indicator + turn.charAt(0).toUpperCase() + turn.slice(1) + ' to move';
     }
 }
 

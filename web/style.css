@@ -25,10 +25,33 @@ h1 {
 }
 
 #status {
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
+    font-size: 1rem;
+    margin-bottom: 0.75rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid #444;
     min-height: 1.5em;
     color: #ccc;
+    text-align: center;
+}
+
+.turn-indicator {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    border: 2px solid #888;
+    vertical-align: middle;
+    margin-right: 0.3rem;
+}
+
+.turn-indicator.white {
+    background: #f0f0f0;
+    border-color: #aaa;
+}
+
+.turn-indicator.black {
+    background: #2c2c2c;
+    border-color: #666;
 }
 
 #status.check {
