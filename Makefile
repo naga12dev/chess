@@ -23,7 +23,7 @@ $(BUILD_DIR):
 test: $(BUILD_DIR)/test_chess
 	./$(BUILD_DIR)/test_chess
 
-$(BUILD_DIR)/test_chess: $(TEST_DIR)/test_chess.cpp $(SRC_DIR)/Piece.cpp $(SRC_DIR)/Board.cpp $(SRC_DIR)/Player.cpp $(SRC_DIR)/Game.cpp | $(BUILD_DIR)
+$(BUILD_DIR)/test_chess: $(TEST_DIR)/test_chess.cpp $(SRC_DIR)/Piece.cpp $(SRC_DIR)/Board.cpp $(SRC_DIR)/Player.cpp $(SRC_DIR)/Game.cpp $(SRC_DIR)/GameEngine.cpp | $(BUILD_DIR)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
 clean:

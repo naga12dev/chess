@@ -23,6 +23,7 @@ public:
     // Query state
     std::string getBoardState() const;
     std::string getLegalMovesJSON() const;
+    std::string getMoveHistoryJSON() const;
     std::string getStatus() const;
     std::string getCurrentTurn() const;
     bool isGameOver() const;

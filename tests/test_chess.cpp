@@ -1,8 +1,10 @@
 #include "Board.h"
 #include "Types.h"
 #include "Move.h"
+#include "GameEngine.h"
 #include <iostream>
 #include <cassert>
+#include <cstring>
 
 int testsPassed = 0;
 int testsFailed = 0;
@@ -120,6 +122,31 @@ void testLegalMoves() {
     check(moves.size() == 20, "White has 20 legal moves at start");
 }
 
+void testMoveHistory() {
+    std::cout << "--- Move History JSON ---\n";
+    GameEngine engine;
+
+    // Initially no moves
+    std::string historyJSON = engine.getMoveHistoryJSON();
+    check(historyJSON == "[]", "Move history is empty at start");
+
+    // Make first move (white)
+    engine.makeMove("e2", "e4", "");
+    historyJSON = engine.getMoveHistoryJSON();
+    check(historyJSON.find("e2e4") != std::string::npos, "First move e2e4 in history");
+    check(historyJSON.find("white") != std::string::npos, "First move marked as white");
+
+    // Make second move (black)
+    engine.makeMove("e7", "e5", "");
+    historyJSON = engine.getMoveHistoryJSON();
+    check(historyJSON.find("e7e5") != std::string::npos, "Second move e7e5 in history");
+    check(historyJSON.find("black") != std::string::npos, "Second move marked as black");
+
+    // Verify the structure contains both moves
+    check(historyJSON.find("[") == 0, "History JSON starts with array");
+    check(historyJSON.find("]") == historyJSON.length() - 1, "History JSON ends with array");
+}
+
 void testPositionAlgebraic() {
     std::cout << "--- Position Algebraic Notation ---\n";
 
@@ -144,6 +171,7 @@ int main() {
     testCastling();
     testCheckDetection();
     testLegalMoves();
+    testMoveHistory();
 
     std::cout << "\n=== Results: " << testsPassed << " passed, "
               << testsFailed << " failed ===\n";

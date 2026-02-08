@@ -109,6 +109,30 @@ std::string GameEngine::getLegalMovesJSON() const {
     return json;
 }
 
+std::string GameEngine::getMoveHistoryJSON() const {
+    const auto& history = board_.getMoveHistory();
+    std::string json = "[";
+    for (size_t i = 0; i < history.size(); i++) {
+        if (i > 0) json += ",";
+        std::string moveStr = history[i].move.from.toAlgebraic() + history[i].move.to.toAlgebraic();
+        // Add promotion notation if applicable
+        if (history[i].move.promotion != PieceType::NONE) {
+            switch (history[i].move.promotion) {
+                case PieceType::QUEEN: moveStr += "q"; break;
+                case PieceType::ROOK: moveStr += "r"; break;
+                case PieceType::BISHOP: moveStr += "b"; break;
+                case PieceType::KNIGHT: moveStr += "n"; break;
+                default: break;
+            }
+        }
+        // Color indicating which player made this move (0-indexed, so even = white, odd = black)
+        std::string color = (i % 2 == 0) ? "white" : "black";
+        json += "{\"move\":\"" + moveStr + "\",\"color\":\"" + color + "\"}";
+    }
+    json += "]";
+    return json;
+}
+
 std::string GameEngine::getStatus() const {
     switch (status_) {
         case GameStatus::ACTIVE: return "active";

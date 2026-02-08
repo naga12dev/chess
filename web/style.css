@@ -41,13 +41,98 @@ h1 {
     font-weight: bold;
 }
 
+#game-container {
+    display: flex;
+    gap: 2rem;
+    justify-content: center;
+    align-items: flex-start;
+    margin-bottom: 1rem;
+}
+
 #board {
     display: grid;
     grid-template-columns: repeat(8, 70px);
     grid-template-rows: repeat(8, 70px);
     border: 3px solid #555;
-    margin: 0 auto 1rem;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    flex-shrink: 0;
+}
+
+#moves-panel {
+    background: #2a2a3a;
+    border: 2px solid #555;
+    border-radius: 8px;
+    padding: 1rem;
+    width: 200px;
+    max-height: 560px;
+    display: flex;
+    flex-direction: column;
+}
+
+#moves-panel h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1.2rem;
+    color: #ddd;
+    text-align: center;
+}
+
+#moves-list {
+    flex: 1;
+    overflow-y: auto;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.5rem;
+    padding-right: 0.5rem;
+}
+
+#moves-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+#moves-list::-webkit-scrollbar-track {
+    background: #1a1a2e;
+}
+
+#moves-list::-webkit-scrollbar-thumb {
+    background: #555;
+    border-radius: 3px;
+}
+
+#moves-list::-webkit-scrollbar-thumb:hover {
+    background: #777;
+}
+
+.move-item {
+    padding: 0.5rem;
+    border-radius: 4px;
+    text-align: center;
+    font-size: 0.95rem;
+    font-family: monospace;
+    cursor: default;
+    user-select: none;
+    font-weight: bold;
+    border: 1px solid;
+    transition: background-color 0.2s;
+}
+
+.move-item.white {
+    background: #4a5a7a;
+    color: #ffffff;
+    border-color: #6a7aaa;
+}
+
+.move-item.white:hover {
+    background: #5a6a8a;
+}
+
+.move-item.black {
+    background: #3a3a3a;
+    color: #e0e0e0;
+    border-color: #555555;
+}
+
+.move-item.black:hover {
+    background: #4a4a4a;
 }
 
 .square {

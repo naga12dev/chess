@@ -10,6 +10,7 @@ EMSCRIPTEN_BINDINGS(chess) {
         .function("makeMove", &GameEngine::makeMove)
         .function("getBoardState", &GameEngine::getBoardState)
         .function("getLegalMovesJSON", &GameEngine::getLegalMovesJSON)
+        .function("getMoveHistoryJSON", &GameEngine::getMoveHistoryJSON)
         .function("getStatus", &GameEngine::getStatus)
         .function("getCurrentTurn", &GameEngine::getCurrentTurn)
         .function("isGameOver", &GameEngine::isGameOver)

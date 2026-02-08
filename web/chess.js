@@ -9,6 +9,7 @@ let selectedSquare = null;
 let legalMoves = [];
 let lastMove = null;
 let pendingPromotion = null;
+let moveHistory = [];
 
 function squareToAlgebraic(row, col) {
     return String.fromCharCode(97 + col) + (row + 1);
@@ -101,6 +102,7 @@ function renderBoard() {
     }
 
     updateStatus();
+    renderMoveHistory();
 }
 
 function onSquareClick(row, col) {
@@ -207,6 +209,25 @@ function updateStatus() {
     }
 }
 
+function renderMoveHistory() {
+    const movesListEl = document.getElementById('moves-list');
+    const historyJSON = engine.getMoveHistoryJSON();
+    moveHistory = JSON.parse(historyJSON);
+
+    movesListEl.innerHTML = '';
+    moveHistory.forEach((moveRecord, index) => {
+        const moveEl = document.createElement('div');
+        moveEl.className = 'move-item ' + moveRecord.color;
+        moveEl.textContent = moveRecord.move;
+        movesListEl.appendChild(moveEl);
+    });
+
+    // Scroll to bottom to show latest move
+    if (moveHistory.length > 0) {
+        movesListEl.scrollTop = movesListEl.scrollHeight;
+    }
+}
+
 // Initialize
 ChessModule().then(function(Module) {
     engine = new Module.GameEngine();
@@ -216,6 +237,7 @@ ChessModule().then(function(Module) {
         selectedSquare = null;
         legalMoves = [];
         lastMove = null;
+        moveHistory = [];
         renderBoard();
     });
 
