@@ -9,7 +9,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 - `make clean` — remove build artifacts
 - `./chess` — run the game
 - `make wasm` — build WebAssembly version (requires Emscripten SDK)
-- `python3 -m http.server -d web` — serve the web version locally
+- `python3 -m http.server -d docs` — serve the web version locally
 
 Requires C++17 compatible compiler (g++ or clang++). WASM build requires Emscripten SDK.
 
@@ -42,7 +42,7 @@ GameEngine    — I/O-free game logic for WASM/web build
 - `include/` — headers: Types.h, Move.h, Piece.h, Board.h, Player.h, Game.h, GameEngine.h
 - `src/` — implementations + main.cpp + GameEngine.cpp + wasm_bindings.cpp
 - `tests/test_chess.cpp` — test suite using assert-based checks
-- `web/` — browser frontend: index.html, chess.js, style.css
+- `docs/` — browser frontend: index.html, chess.js, style.css
 
 ## Next Steps
 

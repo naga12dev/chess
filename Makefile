@@ -30,16 +30,16 @@ clean:
 	rm -rf $(BUILD_DIR) $(TARGET)
 
 # WASM build (requires Emscripten SDK)
-wasm: web/chess_engine.js
+wasm: docs/chess_engine.js
 
-web/chess_engine.js: $(SRC_DIR)/Piece.cpp $(SRC_DIR)/Board.cpp $(SRC_DIR)/GameEngine.cpp $(SRC_DIR)/wasm_bindings.cpp
+docs/chess_engine.js: $(SRC_DIR)/Piece.cpp $(SRC_DIR)/Board.cpp $(SRC_DIR)/GameEngine.cpp $(SRC_DIR)/wasm_bindings.cpp
 	em++ -std=c++17 -O2 -Iinclude --bind \
 		$(SRC_DIR)/Piece.cpp $(SRC_DIR)/Board.cpp $(SRC_DIR)/GameEngine.cpp $(SRC_DIR)/wasm_bindings.cpp \
-		-o web/chess_engine.js \
+		-o docs/chess_engine.js \
 		-s MODULARIZE=1 -s EXPORT_NAME=ChessModule \
 		-s ALLOW_MEMORY_GROWTH=1
 
 clean-wasm:
-	rm -f web/chess_engine.js web/chess_engine.wasm
+	rm -f docs/chess_engine.js docs/chess_engine.wasm
 
 .PHONY: all clean test wasm clean-wasm

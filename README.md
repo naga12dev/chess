@@ -31,7 +31,7 @@ Requires [Emscripten SDK](https://emscripten.org/docs/getting_started/downloads.
 ```bash
 source ~/emsdk/emsdk_env.sh
 make wasm
-python3 -m http.server -d web
+python3 -m http.server -d docs
 ```
 
 Open `http://localhost:8000` in your browser.
@@ -54,7 +54,7 @@ Requires a C++17 compatible compiler (g++ or clang++).
 include/          C++ headers (Board.h, Piece.h, Game.h, GameEngine.h, etc.)
 src/              C++ source files + WASM bindings
 tests/            Test suite (assert-based)
-web/              Browser frontend (HTML, JS, CSS)
+docs/             Browser frontend (HTML, JS, CSS) — served by GitHub Pages
   stockfish/      Stockfish.js engine (Web Worker)
 ```
 
