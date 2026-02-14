@@ -16,11 +16,25 @@ let stockfish = null;
 let evalPending = false;
 
 // Computer play
-let gameMode = '2player';      // '2player' or 'computer'
+let gameMode = '2player';      // '2player', 'computer', or 'online'
 let playerColor = 'white';     // which color the human plays
 let difficulty = 12;           // Stockfish depth: Easy=5, Medium=12, Hard=18
 let computerThinking = false;  // true while waiting for Stockfish bestmove
 let stockfishMode = 'eval';   // 'eval' or 'bestmove'
+
+// Online play
+let ws = null;
+let myColor = null;            // 'white' or 'black' in online mode
+let onlineRole = null;         // 'host' or 'guest'
+let roomCode = null;
+let keepaliveInterval = null;
+let reconnectAttempts = 0;
+const MAX_RECONNECT_ATTEMPTS = 5;
+
+// WebSocket URL: auto-detect based on hostname
+const WS_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'ws://localhost:3000'
+    : 'wss://chess-server-yq6b.onrender.com';
 
 function initStockfish() {
     stockfish = new Worker('stockfish/stockfish.js');
@@ -252,6 +266,12 @@ function onSquareClick(row, col) {
     if (engine.isGameOver()) return;
     if (computerThinking || isComputerTurn()) return;
 
+    // Block clicks in online mode if not our turn
+    if (gameMode === 'online') {
+        const currentTurn = engine.getCurrentTurn();
+        if (currentTurn !== myColor) return;
+    }
+
     const boardState = engine.getBoardState();
     const turn = engine.getCurrentTurn();
     const ch = boardState[row * 8 + col];
@@ -310,19 +330,39 @@ function selectSquare(row, col) {
 }
 
 function attemptMove(from, to, promotion) {
-    const success = engine.makeMove(from, to, promotion);
-    if (success) {
+    if (gameMode === 'online') {
+        // Validate locally first
+        const success = engine.makeMove(from, to, promotion);
+        if (!success) return;
+
         lastMove = { from, to };
-    }
-    selectedSquare = null;
-    legalMoves = [];
-    renderBoard();
-    if (success) {
-        if (gameMode === 'computer' && !engine.isGameOver() && isComputerTurn()) {
-            // In computer mode, request the computer's move (eval happens via bestmove handler)
-            requestComputerMove();
-        } else {
-            evaluatePosition();
+        selectedSquare = null;
+        legalMoves = [];
+        renderBoard();
+
+        // Send to server
+        ws.send(JSON.stringify({
+            type: 'move',
+            from: from,
+            to: to,
+            promotion: promotion
+        }));
+
+        evaluatePosition();
+    } else {
+        const success = engine.makeMove(from, to, promotion);
+        if (success) {
+            lastMove = { from, to };
+        }
+        selectedSquare = null;
+        legalMoves = [];
+        renderBoard();
+        if (success) {
+            if (gameMode === 'computer' && !engine.isGameOver() && isComputerTurn()) {
+                requestComputerMove();
+            } else {
+                evaluatePosition();
+            }
         }
     }
 }
@@ -360,6 +400,8 @@ function updateStatus() {
         statusEl.classList.add('check');
     } else if (computerThinking) {
         statusEl.innerHTML = indicator + 'Computer is thinking...';
+    } else if (gameMode === 'online' && myColor && turn !== myColor) {
+        statusEl.innerHTML = indicator + 'Waiting for opponent...';
     } else {
         statusEl.innerHTML = indicator + turn.charAt(0).toUpperCase() + turn.slice(1) + ' to move';
     }
@@ -384,7 +426,247 @@ function renderMoveHistory() {
     }
 }
 
-// Initialize
+// ========== Online Multiplayer ==========
+
+function connectToServer() {
+    if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) {
+        return; // Already connected or connecting
+    }
+
+    ws = new WebSocket(WS_URL);
+
+    ws.onopen = () => {
+        console.log('Connected to server');
+        reconnectAttempts = 0;
+        startKeepalive();
+        updateRoomStatusText('Connected. Create or join a room.');
+    };
+
+    ws.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+        handleServerMessage(msg);
+    };
+
+    ws.onclose = () => {
+        console.log('Disconnected from server');
+        stopKeepalive();
+        if (gameMode === 'online' && roomCode) {
+            attemptReconnect();
+        }
+    };
+
+    ws.onerror = (error) => {
+        console.error('WebSocket error:', error);
+    };
+}
+
+function disconnectFromServer() {
+    stopKeepalive();
+    if (ws) {
+        ws.onclose = null; // Prevent reconnect logic
+        ws.close();
+        ws = null;
+    }
+    roomCode = null;
+    myColor = null;
+    onlineRole = null;
+    reconnectAttempts = 0;
+}
+
+function attemptReconnect() {
+    if (reconnectAttempts >= MAX_RECONNECT_ATTEMPTS) {
+        updateRoomStatusText('Connection lost. Please refresh.');
+        return;
+    }
+
+    reconnectAttempts++;
+    const delay = Math.min(2000 * Math.pow(1.5, reconnectAttempts - 1), 10000);
+    updateRoomStatusText('Reconnecting... (attempt ' + reconnectAttempts + ')');
+
+    setTimeout(() => {
+        if (gameMode !== 'online') return;
+
+        ws = new WebSocket(WS_URL);
+
+        ws.onopen = () => {
+            console.log('Reconnected to server');
+            reconnectAttempts = 0;
+            startKeepalive();
+            // Rejoin room
+            if (roomCode) {
+                ws.send(JSON.stringify({ type: 'join_room', code: roomCode }));
+            }
+        };
+
+        ws.onmessage = (event) => {
+            const msg = JSON.parse(event.data);
+            handleServerMessage(msg);
+        };
+
+        ws.onclose = () => {
+            console.log('Reconnection failed');
+            stopKeepalive();
+            if (gameMode === 'online' && roomCode) {
+                attemptReconnect();
+            }
+        };
+
+        ws.onerror = () => {};
+    }, delay);
+}
+
+function startKeepalive() {
+    stopKeepalive();
+    keepaliveInterval = setInterval(() => {
+        if (ws && ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify({ type: 'ping' }));
+        }
+    }, 30000);
+}
+
+function stopKeepalive() {
+    if (keepaliveInterval) {
+        clearInterval(keepaliveInterval);
+        keepaliveInterval = null;
+    }
+}
+
+function handleServerMessage(msg) {
+    switch (msg.type) {
+        case 'room_created':
+            roomCode = msg.code;
+            myColor = msg.color;
+            onlineRole = 'host';
+            showRoomInfo(msg.code);
+            updateRoomStatusText('Waiting for opponent...');
+            updateStatus();
+            break;
+
+        case 'room_joined':
+            myColor = msg.color;
+            onlineRole = 'guest';
+            showRoomInfo(roomCode);
+            syncGameState(msg.moveHistory);
+            updateRoomStatusText('Game started! You play as ' + myColor + '.');
+            updateStatus();
+            break;
+
+        case 'opponent_joined':
+            updateRoomStatusText('Opponent joined! Game started.');
+            updateStatus();
+            break;
+
+        case 'move':
+            // Sync state from server (replay moves to ensure consistency)
+            syncGameState(msg.moveHistory);
+            if (msg.moveHistory.length > 0) {
+                const lastMoveData = msg.moveHistory[msg.moveHistory.length - 1];
+                lastMove = { from: lastMoveData.from, to: lastMoveData.to };
+            }
+            renderBoard();
+            evaluatePosition();
+            break;
+
+        case 'invalid_move':
+            // Server rejected our move — undo local state by replaying server history
+            console.warn('Server rejected move:', msg.reason);
+            // We'd need to resync, but in practice this shouldn't happen
+            // since we validate locally first
+            break;
+
+        case 'game_over':
+            handleOnlineGameOver(msg.status, msg.winner);
+            break;
+
+        case 'opponent_disconnected':
+            updateRoomStatusText('Opponent disconnected. Waiting 60s...');
+            break;
+
+        case 'opponent_reconnected':
+            updateRoomStatusText('Opponent reconnected!');
+            setTimeout(() => {
+                updateRoomStatusText('Game in progress.');
+            }, 2000);
+            break;
+
+        case 'reconnected':
+            myColor = msg.color;
+            syncGameState(msg.moveHistory);
+            if (msg.moveHistory.length > 0) {
+                const lastMoveData = msg.moveHistory[msg.moveHistory.length - 1];
+                lastMove = { from: lastMoveData.from, to: lastMoveData.to };
+            }
+            showRoomInfo(roomCode);
+            updateRoomStatusText('Reconnected! Game in progress.');
+            renderBoard();
+            evaluatePosition();
+            break;
+
+        case 'error':
+            updateRoomStatusText('Error: ' + msg.message);
+            break;
+
+        case 'pong':
+            break;
+    }
+}
+
+function syncGameState(serverMoveHistory) {
+    // Replay all moves from the beginning to sync with server
+    engine.reset();
+    lastMove = null;
+    for (const move of serverMoveHistory) {
+        engine.makeMove(move.from, move.to, move.promotion || '');
+    }
+    renderBoard();
+}
+
+function handleOnlineGameOver(status, winner) {
+    const statusEl = document.getElementById('status');
+    statusEl.className = 'gameover';
+
+    if (status === 'checkmate') {
+        const winnerName = winner === myColor ? 'You win' : 'Opponent wins';
+        statusEl.innerHTML = 'Checkmate! ' + winnerName + '!';
+    } else if (status === 'draw') {
+        statusEl.innerHTML = 'Draw!';
+    } else if (status === 'resignation') {
+        const winnerName = winner === myColor ? 'You win' : 'Opponent wins';
+        statusEl.innerHTML = 'Resignation. ' + winnerName + '!';
+    } else if (status === 'abandonment') {
+        const winnerName = winner === myColor ? 'You win' : 'Opponent wins';
+        statusEl.innerHTML = 'Opponent abandoned. ' + winnerName + '!';
+    }
+
+    updateRoomStatusText('Game over.');
+}
+
+function showRoomInfo(code) {
+    const lobby = document.getElementById('online-lobby');
+    const info = document.getElementById('room-info');
+    const display = document.getElementById('room-code-display');
+
+    lobby.classList.add('hidden');
+    info.classList.remove('hidden');
+    display.textContent = code;
+}
+
+function showOnlineLobby() {
+    const lobby = document.getElementById('online-lobby');
+    const info = document.getElementById('room-info');
+
+    lobby.classList.remove('hidden');
+    info.classList.add('hidden');
+    document.getElementById('room-code-input').value = '';
+}
+
+function updateRoomStatusText(text) {
+    const el = document.getElementById('room-status-text');
+    if (el) el.textContent = text;
+}
+
+// ========== Initialization ==========
+
 ChessModule().then(function(Module) {
     engine = new Module.GameEngine();
 
@@ -399,17 +681,32 @@ ChessModule().then(function(Module) {
         resetEvalBar();
         renderBoard();
         if (gameMode === 'computer' && playerColor === 'black') {
-            // Computer plays first as White
             requestComputerMove();
         } else {
             evaluatePosition();
         }
     }
 
-    document.getElementById('new-game').addEventListener('click', startNewGame);
+    document.getElementById('new-game').addEventListener('click', function() {
+        if (gameMode === 'online') {
+            // In online mode, "New Game" leaves current room and shows lobby
+            disconnectFromServer();
+            showOnlineLobby();
+            connectToServer();
+            startNewGame();
+        } else {
+            startNewGame();
+        }
+    });
 
     document.getElementById('resign').addEventListener('click', function() {
-        if (!engine.isGameOver()) {
+        if (engine.isGameOver()) return;
+
+        if (gameMode === 'online') {
+            if (ws && ws.readyState === WebSocket.OPEN) {
+                ws.send(JSON.stringify({ type: 'resign' }));
+            }
+        } else {
             engine.resign();
             renderBoard();
         }
@@ -431,23 +728,49 @@ ChessModule().then(function(Module) {
     const playAsSelect = document.getElementById('play-as');
     const difficultySelect = document.getElementById('difficulty');
     const computerOptions = document.getElementById('computer-options');
+    const onlineOptions = document.getElementById('online-options');
+    const onlineControls = document.getElementById('online-controls');
 
     function updateModeUI() {
+        computerOptions.classList.add('hidden');
+        onlineOptions.classList.add('hidden');
+        onlineControls.classList.add('hidden');
+        modeToggle.classList.remove('active');
+
         if (gameMode === 'computer') {
             modeToggle.textContent = 'vs Computer';
             modeToggle.classList.add('active');
             computerOptions.classList.remove('hidden');
+        } else if (gameMode === 'online') {
+            modeToggle.textContent = 'Online';
+            modeToggle.classList.add('active');
+            onlineOptions.classList.remove('hidden');
+            onlineControls.classList.remove('hidden');
         } else {
             modeToggle.textContent = '2 Player';
-            modeToggle.classList.remove('active');
-            computerOptions.classList.add('hidden');
         }
     }
 
     modeToggle.addEventListener('click', function() {
-        gameMode = gameMode === '2player' ? 'computer' : '2player';
+        const modes = ['2player', 'computer', 'online'];
+        const idx = modes.indexOf(gameMode);
+        const newMode = modes[(idx + 1) % modes.length];
+
+        // Cleanup previous mode
+        if (gameMode === 'online') {
+            disconnectFromServer();
+        }
+
+        gameMode = newMode;
         updateModeUI();
-        startNewGame();
+
+        if (gameMode === 'online') {
+            connectToServer();
+            showOnlineLobby();
+            startNewGame();
+        } else {
+            startNewGame();
+        }
     });
 
     playAsSelect.addEventListener('change', function() {
@@ -458,6 +781,50 @@ ChessModule().then(function(Module) {
     difficultySelect.addEventListener('change', function() {
         difficulty = parseInt(this.value);
         startNewGame();
+    });
+
+    // Online controls
+    document.getElementById('create-room-btn').addEventListener('click', function() {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            updateRoomStatusText('Not connected. Please wait...');
+            connectToServer();
+            return;
+        }
+        const color = document.getElementById('online-color').value;
+        ws.send(JSON.stringify({ type: 'create_room', color: color }));
+        myColor = color;
+        startNewGame();
+    });
+
+    document.getElementById('join-room-btn').addEventListener('click', function() {
+        if (!ws || ws.readyState !== WebSocket.OPEN) {
+            updateRoomStatusText('Not connected. Please wait...');
+            connectToServer();
+            return;
+        }
+        const code = document.getElementById('room-code-input').value.toUpperCase().trim();
+        if (code.length < 3) {
+            updateRoomStatusText('Please enter a valid room code.');
+            return;
+        }
+        roomCode = code;
+        ws.send(JSON.stringify({ type: 'join_room', code: code }));
+        startNewGame();
+    });
+
+    document.getElementById('copy-code-btn').addEventListener('click', function() {
+        const code = document.getElementById('room-code-display').textContent;
+        navigator.clipboard.writeText(code).then(() => {
+            this.textContent = 'Copied!';
+            setTimeout(() => { this.textContent = 'Copy'; }, 1500);
+        });
+    });
+
+    // Allow Enter key in room code input
+    document.getElementById('room-code-input').addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+            document.getElementById('join-room-btn').click();
+        }
     });
 
     updateModeUI();

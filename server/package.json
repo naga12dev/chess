@@ -1,0 +1,13 @@
+{
+  "name": "chess-server",
+  "version": "1.0.0",
+  "description": "WebSocket server for online chess multiplayer",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "chess.js": "^1.0.0-beta.8",
+    "ws": "^8.16.0"
+  }
+}

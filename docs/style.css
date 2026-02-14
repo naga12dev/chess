@@ -356,6 +356,159 @@ h1 {
     border-color: #777;
 }
 
+#online-options {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+#online-options.hidden {
+    display: none;
+}
+
+#online-options select {
+    padding: 0.45rem 0.6rem;
+    font-size: 0.9rem;
+    border: 2px solid #555;
+    border-radius: 6px;
+    background: #2a2a4a;
+    color: #ccc;
+    cursor: pointer;
+}
+
+#online-options select:hover {
+    border-color: #777;
+}
+
+#online-controls {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+#online-controls.hidden {
+    display: none;
+}
+
+#online-lobby {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+#create-room-btn {
+    padding: 0.5rem 1.2rem;
+    font-size: 0.95rem;
+    border: 2px solid #6a9a6a;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #4a6a4a;
+    color: #fff;
+    transition: background 0.2s;
+}
+
+#create-room-btn:hover {
+    background: #5a7a5a;
+}
+
+#join-section {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+}
+
+#room-code-input {
+    width: 100px;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.95rem;
+    font-family: monospace;
+    text-transform: uppercase;
+    border: 2px solid #555;
+    border-radius: 6px;
+    background: #2a2a4a;
+    color: #fff;
+    text-align: center;
+    letter-spacing: 0.1em;
+}
+
+#room-code-input::placeholder {
+    color: #666;
+    text-transform: none;
+    letter-spacing: normal;
+}
+
+#room-code-input:focus {
+    outline: none;
+    border-color: #88f;
+}
+
+#join-room-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.95rem;
+    border: 2px solid #555;
+    border-radius: 6px;
+    cursor: pointer;
+    background: #3a3a5a;
+    color: #ccc;
+    transition: background 0.2s;
+}
+
+#join-room-btn:hover {
+    background: #4a4a7a;
+    border-color: #777;
+}
+
+#room-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.75rem 1.5rem;
+    background: #2a2a3a;
+    border: 2px solid #555;
+    border-radius: 8px;
+}
+
+#room-info.hidden {
+    display: none;
+}
+
+#room-code-display-row {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 1rem;
+}
+
+#room-code-display {
+    font-family: monospace;
+    font-size: 1.3rem;
+    letter-spacing: 0.15em;
+    color: #ffd93d;
+}
+
+#copy-code-btn {
+    padding: 0.3rem 0.7rem;
+    font-size: 0.8rem;
+    border: 1px solid #666;
+    border-radius: 4px;
+    cursor: pointer;
+    background: #3a3a5a;
+    color: #ccc;
+    transition: background 0.2s;
+}
+
+#copy-code-btn:hover {
+    background: #4a4a7a;
+}
+
+#room-status-text {
+    font-size: 0.9rem;
+    color: #aaa;
+}
+
 .modal {
     position: fixed;
     top: 0;

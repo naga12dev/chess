@@ -40,6 +40,28 @@
                     <option value="18">Hard</option>
                 </select>
             </div>
+            <div id="online-options" class="hidden">
+                <select id="online-color">
+                    <option value="white">Play as White</option>
+                    <option value="black">Play as Black</option>
+                </select>
+            </div>
+        </div>
+        <div id="online-controls" class="hidden">
+            <div id="online-lobby">
+                <button id="create-room-btn">Create Room</button>
+                <div id="join-section">
+                    <input type="text" id="room-code-input" placeholder="Room code" maxlength="6" spellcheck="false" autocomplete="off">
+                    <button id="join-room-btn">Join</button>
+                </div>
+            </div>
+            <div id="room-info" class="hidden">
+                <div id="room-code-display-row">
+                    <span>Room: <strong id="room-code-display"></strong></span>
+                    <button id="copy-code-btn" title="Copy code">Copy</button>
+                </div>
+                <div id="room-status-text">Waiting for opponent...</div>
+            </div>
         </div>
         <div id="promotion-modal" class="modal hidden">
             <div class="modal-content">
