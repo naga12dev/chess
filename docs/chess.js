@@ -34,7 +34,7 @@ const MAX_RECONNECT_ATTEMPTS = 5;
 // WebSocket URL: auto-detect based on hostname
 const WS_URL = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
     ? 'ws://localhost:3000'
-    : 'https://chess-72lu.onrender.com';
+    : 'wss://chess-72lu.onrender.com';
 
 function initStockfish() {
     stockfish = new Worker('stockfish/stockfish.js');
