@@ -1,3 +1,4 @@
+const http = require('http');
 const { WebSocketServer } = require('ws');
 const { Chess } = require('chess.js');
 
@@ -415,8 +416,13 @@ setInterval(() => {
   }
 }, 5 * 60 * 1000); // Check every 5 minutes
 
-// Start server
-const wss = new WebSocketServer({ port: PORT });
+// HTTP server for health check, then upgrade to WebSocket
+const server = http.createServer((req, res) => {
+  res.writeHead(200, { 'Content-Type': 'text/plain' });
+  res.end(`Chess WebSocket server running. Active rooms: ${rooms.size}`);
+});
+
+const wss = new WebSocketServer({ server });
 
 wss.on('connection', (ws) => {
   console.log('Client connected');
@@ -455,5 +461,6 @@ wss.on('close', () => {
   clearInterval(heartbeat);
 });
 
-console.log(`Chess WebSocket server running on port ${PORT}`);
-console.log(`Rooms active: ${rooms.size}`);
+server.listen(PORT, () => {
+  console.log(`Chess WebSocket server running on port ${PORT}`);
+});
